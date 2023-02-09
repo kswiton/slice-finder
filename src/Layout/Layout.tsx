@@ -1,6 +1,5 @@
 import React, { useState } from "react";
 import Box from "@mui/material/Box";
-import CssBaseline from "@mui/material/CssBaseline";
 import Toolbar from "@mui/material/Toolbar";
 import TopBar from "../Nav/TopBar";
 import DesktopDrawer from "./DesktopDrawer";
@@ -24,7 +23,6 @@ const Layout: React.FC<LayoutProps> = (props) => {
 
   return (
     <Box sx={{ display: "flex" }}>
-      <CssBaseline />
       <TopBar handleDrawerToggle={handleDrawerToggle} />
       <Box
         component="nav"

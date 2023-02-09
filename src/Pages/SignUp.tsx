@@ -1,5 +1,4 @@
 import React, { useState } from "react";
-import classes from "../App.module.css";
 import { NavLink, useNavigate } from "react-router-dom";
 import IconButton from "@mui/material/IconButton";
 import OutlinedInput from "@mui/material/OutlinedInput";
@@ -15,24 +14,65 @@ import Typography from "@mui/material/Typography";
 import Button from "@mui/material/Button";
 import { auth } from "../Auth/firebaseConfig";
 import Link from "@mui/material/Link";
-import { useSignInWithEmailAndPassword } from "react-firebase-hooks/auth";
-import CircularProgress from "@mui/material/CircularProgress";
 import { useLoginStatus } from "../Auth/AuthContext";
+import { useCreateUserWithEmailAndPassword } from "react-firebase-hooks/auth";
+import CircularProgress from "@mui/material/CircularProgress";
 
 const SignUp = () => {
   const { isLoggedIn } = useLoginStatus();
+  const navigate = useNavigate();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const [confirmPassword, setConfirmPassword] = useState("");
+  const [isEmailCorrect, setIsEmailCorrect] = useState(true);
+  const [isPasswordValid, setIsPasswordValid] = useState(true);
+  const [passwordsMatch, setPasswordsMatch] = useState(true);
   const [showPassword, setShowPassword] = useState(false);
-  const [signInWithEmailAndPassword, user, loading, error] =
-    useSignInWithEmailAndPassword(auth);
-  const navigate = useNavigate();
+  const [createUserWithEmailAndPassword, user, loading, error] =
+    useCreateUserWithEmailAndPassword(auth);
 
-  const onLogin = async () => {
-    try {
-      await signInWithEmailAndPassword(email, password);
-    } catch (error: any) {
-      console.log(error.code, error.message);
+  const validateEmail = (email: string) => {
+    const emailRegex = /^[a-zA-Z0-9._-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,4}$/;
+    if (emailRegex.test(email)) {
+      setIsEmailCorrect(true);
+      return true;
+    } else {
+      setIsEmailCorrect(false);
+      return false;
+    }
+  };
+
+  const validatePassword = (password: string) => {
+    const passwordRegex = /^(?=.*[0-9])(?=.*[a-z])(?=.*[A-Z]).{8,32}$/; //between 8-32 characters, at least one uppercase, one lowercase and one number
+    if (passwordRegex.test(password)) {
+      setIsPasswordValid(true);
+      return true;
+    } else {
+      setIsPasswordValid(false);
+      return false;
+    }
+  };
+
+  const validatePasswordsMatch = (
+    password: string,
+    confirmPassword: string
+  ) => {
+    if (password === confirmPassword) {
+      setPasswordsMatch(true);
+      return true;
+    } else {
+      setPasswordsMatch(false);
+      return false;
+    }
+  };
+
+  const onRegister = async () => {
+    if (
+      validateEmail(email) &&
+      validatePassword(password) &&
+      validatePasswordsMatch(password, confirmPassword)
+    ) {
+      await createUserWithEmailAndPassword(email, password);
     }
   };
 
@@ -60,11 +100,11 @@ const SignUp = () => {
           padding: 3,
         }}
       >
-        <Typography variant="h4">Log in</Typography>
+        <Typography variant="h4">Create account</Typography>
         <Typography variant="subtitle1" sx={{ marginBottom: 2 }}>
-          Don't have an account?{" "}
-          <Link component={NavLink} to="/signup" underline="hover">
-            Sign in
+          Already have an account?{" "}
+          <Link component={NavLink} to="/login" underline="hover">
+            Login
           </Link>
         </Typography>
         <FormControl sx={{ m: 1, width: "25ch" }} variant="outlined">
@@ -77,26 +117,27 @@ const SignUp = () => {
             value={email}
             onKeyDown={(e) => {
               if (e.key === "Enter") {
-                onLogin();
+                onRegister();
               }
             }}
             onChange={(e) => {
               setEmail(e.target.value);
             }}
+            error={!isEmailCorrect}
           />
         </FormControl>
-
+        {!isEmailCorrect && (
+          <FormHelperText error>Enter correct email</FormHelperText>
+        )}
         <FormControl sx={{ m: 1, width: "25ch" }} variant="outlined">
-          <InputLabel htmlFor="outlined-adornment-password">
-            Password
-          </InputLabel>
+          <InputLabel htmlFor="password">Password</InputLabel>
           <OutlinedInput
-            id="outlined-adornment-password"
+            id="password"
             type={showPassword ? "text" : "password"}
             value={password}
             onKeyDown={(e) => {
               if (e.key === "Enter") {
-                onLogin();
+                onRegister();
               }
             }}
             onChange={(e) => {
@@ -119,13 +160,42 @@ const SignUp = () => {
             label="Password"
           />
         </FormControl>
-        {error && (
-          <FormHelperText error>
-            {error.code === "auth/invalid-email"
-              ? "Invalid email or password"
-              : error.message}
-          </FormHelperText>
-        )}
+        <FormControl sx={{ m: 1, width: "25ch" }} variant="outlined">
+          <InputLabel htmlFor="confirmPassword">Confirm Password</InputLabel>
+          <OutlinedInput
+            id="confirmPassword"
+            type={showPassword ? "text" : "password"}
+            label="Confirm Password"
+            value={confirmPassword}
+            onKeyDown={(e) => {
+              if (e.key === "Enter") {
+                onRegister();
+              }
+            }}
+            onChange={(e) => {
+              setConfirmPassword(e.target.value);
+            }}
+          />
+        </FormControl>
+        <Box
+          sx={{
+            display: "flex",
+            flexDirection: "column",
+            gap: 1,
+            width: "25ch",
+          }}
+        >
+          {!isPasswordValid && (
+            <FormHelperText error>
+              Password needs to be between 8-32 characters, at least one
+              uppercase, one lowercase and one number
+            </FormHelperText>
+          )}
+          {!passwordsMatch && (
+            <FormHelperText error>Passwords do not match</FormHelperText>
+          )}
+          {error && <FormHelperText error>{error.message}</FormHelperText>}
+        </Box>
         {loading ? (
           <CircularProgress />
         ) : (
@@ -133,14 +203,13 @@ const SignUp = () => {
             sx={{ marginTop: 1 }}
             variant="contained"
             onClick={() => {
-              onLogin();
+              onRegister();
             }}
           >
-            Log in
+            Create account
           </Button>
         )}
       </Paper>
-      <div className={classes.blob}></div>
     </Box>
   );
 };

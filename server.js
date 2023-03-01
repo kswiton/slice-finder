@@ -11,7 +11,7 @@ app.get("/api/url", (req, res) => {
 
 app.get("/api/place", async (req, res) => {
   const response = await axios(
-    "https://maps.googleapis.com/maps/api/place/findplacefromtext/json?input=Museum%20of%20Contemporary%20Art%20Australia&inputtype=textquery&fields=formatted_address%2Cname%2Crating%2Copening_hours%2Cgeometry&key=AIzaSyB5i85bOzMSlWel2sZueJdXqXtYbN4YG6g"
+    "https://maps.googleapis.com/maps/api/place/findplacefromtext/json?input=Museum%20of%20Contemporary%20Art%20Australia&inputtype=textquery&fields=formatted_address%2Cname%2Crating%2Copening_hours%2Cgeometry&key=KEY_HERE"
   );
   res.send(response.data);
   fetch();

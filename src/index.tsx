@@ -13,6 +13,7 @@ import Pizza from "./features/pizza/Pizza";
 import Login from "./Pages/Login";
 import App from "./App";
 import SignUp from "./Pages/SignUp";
+import HomePage from "./Layout/HomePage";
 
 const queryClient = new QueryClient();
 const container = document.getElementById("root")!;
@@ -37,6 +38,10 @@ const router = createBrowserRouter([
   {
     path: "/signup",
     element: <SignUp />,
+  },
+  {
+    path: "/home",
+    element: <HomePage />,
   },
 ]);
 

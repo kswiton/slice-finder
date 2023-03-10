@@ -1,35 +1,41 @@
-import React, { useState } from "react";
+import React, { useEffect, useState } from "react";
 import TextField from "@mui/material/TextField";
 import Box from "@mui/material/Box";
 import axios from "axios";
-import { useQuery } from "react-query";
+import { useQuery, useMutation } from "react-query";
 import { Button, Paper } from "@mui/material";
 import LocationOnIcon from "@mui/icons-material/LocationOn";
-import IconButton from "@mui/material/IconButton";
-import OutlinedInput from "@mui/material/OutlinedInput";
-import InputLabel from "@mui/material/InputLabel";
-import InputAdornment from "@mui/material/InputAdornment";
-import FormControl from "@mui/material/FormControl";
-
+import ToggleButton from "@mui/material/ToggleButton";
+import ToggleButtonGroup from "@mui/material/ToggleButtonGroup";
 const HomePage = () => {
-  const [searchInput, setSearchInput] = useState("");
+  const [pizzaList, setPizzaList] = useState<any[]>([]);
+  const [ingredients, setIngredients] = useState<any[]>([]);
+  const [hateList, setHateList] = useState<any[]>([]);
+  const [loveList, setLoveList] = useState<any[]>([]);
 
-  const {
-    isLoading,
-    error,
-    data,
-    refetch: refetchPizza,
-  } = useQuery(
-    "pizza",
-    async () => {
-      const response = await axios("/api/place");
-      console.log(response);
-    },
-    { enabled: false }
-  );
+  const handleAlignment = (
+    event: React.MouseEvent<HTMLElement>,
+    newAlignment: string | null
+  ) => {};
+  useEffect(() => {
+    axios.get("/api/ingredients").then((response) => {
+      console.log("ingredients", response.data);
+      setIngredients(response.data);
+    });
+    axios.get("/api/pizzas").then((response) => {
+      console.log("pizzas", response.data);
+      setPizzaList(response.data);
+    });
+  }, [setPizzaList]);
 
-  const successCallback = (position: any) => {
-    console.log(position);
+  const successCallback = async (position: any) => {
+    const response = await axios.get("/api/place", {
+      params: {
+        latitude: position.coords.latitude,
+        longitude: position.coords.longitude,
+      },
+    });
+    console.log(response);
   };
 
   const errorCallback = (error: any) => {
@@ -39,6 +45,22 @@ const HomePage = () => {
   const search = () => {
     navigator.geolocation.getCurrentPosition(successCallback, errorCallback);
   };
+
+  const handleLoveHate = (ingredient: any) => {
+    if (hateList.includes(ingredient)) {
+      setHateList(
+        hateList.filter((hateIngredient) => hateIngredient !== ingredient)
+      );
+      setLoveList([...loveList, ingredient]);
+    } else if (loveList.includes(ingredient)) {
+      setLoveList(
+        loveList.filter((loveIngredient) => loveIngredient !== ingredient)
+      );
+    } else {
+      setHateList([...hateList, ingredient]);
+    }
+  };
+
   return (
     <Box
       sx={{
@@ -46,32 +68,96 @@ const HomePage = () => {
         background: "linear-gradient(160deg, #2196f3 0%, #1769aa 100%)",
         display: "flex",
         justifyContent: "center",
-        alignItems: "center",
         minHeight: "100vh",
       }}
     >
-      <Paper sx={{ p: 3, display: "flex", flexDirection: "column", gap: 3 }}>
-        <FormControl sx={{ m: 1, width: "25ch" }} variant="outlined">
-          <InputLabel htmlFor="location">Your location</InputLabel>
-          <OutlinedInput
-            id="location"
-            type="text"
-            value={searchInput}
-            onChange={(e) => setSearchInput(e.target.value)}
-            endAdornment={
-              <InputAdornment position="end">
-                <IconButton onClick={search} edge="end">
-                  <LocationOnIcon />
-                </IconButton>
-              </InputAdornment>
-            }
-            label="Your location"
-          />
-        </FormControl>
-        <Button onClick={() => refetchPizza()} variant="contained">
+      <Box sx={{ display: "flex", flexDirection: "column", gap: 3 }}>
+        <Button
+          onClick={search}
+          variant="contained"
+          color="warning"
+          startIcon={<LocationOnIcon />}
+        >
           Search
         </Button>
-      </Paper>
+        <Paper
+          sx={{
+            p: 3,
+            display: "grid",
+            gridTemplateColumns: "repeat(3, 1fr)",
+            gap: 3,
+          }}
+        >
+          {ingredients.map((ingredient, index) => (
+            <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
+              <ToggleButtonGroup
+                value={
+                  hateList.includes(ingredient)
+                    ? "hate"
+                    : loveList.includes(ingredient)
+                    ? "love"
+                    : "ok"
+                }
+                exclusive
+                onChange={() => {
+                  handleLoveHate(ingredient);
+                }}
+                size="small"
+              >
+                <ToggleButton value="hate" aria-label="hate">
+                  🤢
+                </ToggleButton>
+                <ToggleButton value="ok" aria-label="ok">
+                  🙂
+                </ToggleButton>
+                <ToggleButton value="love" aria-label="love">
+                  😍
+                </ToggleButton>
+              </ToggleButtonGroup>
+
+              {ingredient.name}
+            </Box>
+          ))}
+        </Paper>
+        {pizzaList.length === 0 ? null : (
+          <Paper
+            sx={{ p: 3, display: "flex", flexDirection: "column", gap: 3 }}
+          >
+            {pizzaList
+              .filter((pizza: any) => {
+                const pizzaIngredients = pizza.ingredients.map(
+                  (ingredient: any) => ingredient.name
+                );
+                const hateIngredients = hateList.map(
+                  (ingredient: any) => ingredient.name
+                );
+                return !hateIngredients.some((hateIngredient) =>
+                  pizzaIngredients.includes(hateIngredient)
+                );
+              })
+              .filter((pizza: any) => {
+                const pizzaIngredients = pizza.ingredients.map(
+                  (ingredient: any) => ingredient.name
+                );
+                const loveIngredients = loveList.map(
+                  (ingredient: any) => ingredient.name
+                );
+                return loveIngredients.every((loveIngredient) =>
+                  pizzaIngredients.includes(loveIngredient)
+                );
+              })
+
+              .map((pizza: any, index: number) => (
+                <Box key={index}>
+                  <b>{pizza.name}</b>:{" "}
+                  {pizza.ingredients
+                    .map((ingredient: any) => ingredient.name)
+                    .join(", ")}
+                </Box>
+              ))}
+          </Paper>
+        )}
+      </Box>
     </Box>
   );
 };

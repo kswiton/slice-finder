@@ -2,7 +2,6 @@ const axios = require("axios").default;
 const express = require("express");
 const cors = require("cors");
 const app = express();
-const users = require("./users.json");
 require("dotenv").config();
 const { PrismaClient } = require("@prisma/client");
 const prisma = new PrismaClient();
@@ -10,14 +9,6 @@ app.use(cors());
 
 app.get("/api/url", (req, res) => {
   res.send("Hello World, from express");
-});
-
-app.get("/api/users/:id", (req, res) => {
-  const user = users.find((user) => user.id === req.params.id);
-  if (!user) {
-    res.status(404).send("User not found");
-  }
-  res.send(user);
 });
 
 app.get("/api/place", async (req, res) => {

@@ -3,30 +3,54 @@ import TextField from "@mui/material/TextField";
 import Box from "@mui/material/Box";
 import axios from "axios";
 import { useQuery, useMutation } from "react-query";
-import { Button, Paper } from "@mui/material";
+import { Button, IconButton, Paper } from "@mui/material";
 import LocationOnIcon from "@mui/icons-material/LocationOn";
 import ToggleButton from "@mui/material/ToggleButton";
 import ToggleButtonGroup from "@mui/material/ToggleButtonGroup";
+import FormControlLabel from "@mui/material/FormControlLabel";
+import Switch from "@mui/material/Switch";
+import Tooltip from "@mui/material/Tooltip";
+import MoreHorizIcon from "@mui/icons-material/MoreHoriz";
+import Chip from "@mui/material/Chip";
+
 const HomePage = () => {
   const [pizzaList, setPizzaList] = useState<any[]>([]);
   const [ingredients, setIngredients] = useState<any[]>([]);
   const [hateList, setHateList] = useState<any[]>([]);
   const [loveList, setLoveList] = useState<any[]>([]);
+  const [vege, setVege] = useState<boolean>(false);
+  const [meat, setMeat] = useState<boolean>(false);
+  const [showAllIngredients, setShowAllIngredients] = useState<boolean>(false);
 
+  console.log(pizzaList);
   const handleAlignment = (
     event: React.MouseEvent<HTMLElement>,
     newAlignment: string | null
   ) => {};
   useEffect(() => {
     axios.get("/api/ingredients").then((response) => {
-      console.log("ingredients", response.data);
       setIngredients(response.data);
     });
     axios.get("/api/pizzas").then((response) => {
-      console.log("pizzas", response.data);
       setPizzaList(response.data);
     });
   }, [setPizzaList]);
+
+  const toggleVege = () => {
+    setMeat(false);
+    setVege(!vege);
+  };
+
+  const toggleMeat = () => {
+    setVege(false);
+    setMeat(!meat);
+  };
+
+  useEffect(() => {
+    vege
+      ? setHateList(ingredients.filter((ingredient) => !ingredient.vegetarian))
+      : setHateList([]);
+  }, [vege, ingredients]);
 
   const successCallback = async (position: any) => {
     const response = await axios.get("/api/place", {
@@ -35,7 +59,6 @@ const HomePage = () => {
         longitude: position.coords.longitude,
       },
     });
-    console.log(response);
   };
 
   const errorCallback = (error: any) => {
@@ -61,6 +84,10 @@ const HomePage = () => {
     }
   };
 
+  const ingredientsToShow = showAllIngredients
+    ? ingredients
+    : ingredients.slice(0, 8);
+
   return (
     <Box
       sx={{
@@ -71,15 +98,15 @@ const HomePage = () => {
         minHeight: "100vh",
       }}
     >
-      <Box sx={{ display: "flex", flexDirection: "column", gap: 3 }}>
-        <Button
+      <Box sx={{ display: "flex", flexDirection: "column", gap: 3, m: 3 }}>
+        {/* <Button
           onClick={search}
           variant="contained"
           color="warning"
           startIcon={<LocationOnIcon />}
         >
           Search
-        </Button>
+        </Button> */}
         <Paper
           sx={{
             p: 3,
@@ -88,7 +115,26 @@ const HomePage = () => {
             gap: 3,
           }}
         >
-          {ingredients.map((ingredient, index) => (
+          <FormControlLabel
+            sx={{ gridColumn: "1/1" }}
+            control={<Switch checked={vege} onChange={toggleVege} />}
+            label="Wegetariańska"
+          />
+          <Tooltip title="Co najmniej 3 mięsne składniki" placement="top">
+            <FormControlLabel
+              sx={{ gridColumn: "2/2" }}
+              control={<Switch checked={meat} onChange={toggleMeat} />}
+              label="Mięsna"
+            />
+          </Tooltip>
+          <Button
+            sx={{ gridColumn: "3/4", textTransform: "none" }}
+            variant="outlined"
+            onClick={() => setShowAllIngredients(!showAllIngredients)}
+          >
+            {showAllIngredients ? "Pokaż mniej" : "Pokaż wszystkie"}
+          </Button>
+          {ingredientsToShow.map((ingredient, index) => (
             <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
               <ToggleButtonGroup
                 value={
@@ -104,20 +150,35 @@ const HomePage = () => {
                 }}
                 size="small"
               >
-                <ToggleButton value="hate" aria-label="hate">
-                  🤢
-                </ToggleButton>
-                <ToggleButton value="ok" aria-label="ok">
-                  🙂
-                </ToggleButton>
-                <ToggleButton value="love" aria-label="love">
-                  😍
-                </ToggleButton>
+                <Tooltip title="Bleh!" placement="top">
+                  <ToggleButton value="hate" aria-label="hate">
+                    🤢
+                  </ToggleButton>
+                </Tooltip>
+                <Tooltip title="Whatever" placement="top">
+                  <ToggleButton value="ok" aria-label="ok">
+                    🙂
+                  </ToggleButton>
+                </Tooltip>
+                <Tooltip title="Must have!" placement="top">
+                  <ToggleButton value="love" aria-label="love">
+                    😍
+                  </ToggleButton>
+                </Tooltip>
               </ToggleButtonGroup>
 
               {ingredient.name}
             </Box>
           ))}
+          {showAllIngredients ? null : (
+            <Box>
+              <IconButton
+                onClick={() => setShowAllIngredients(!showAllIngredients)}
+              >
+                <MoreHorizIcon />
+              </IconButton>
+            </Box>
+          )}
         </Paper>
         {pizzaList.length === 0 ? null : (
           <Paper
@@ -146,13 +207,41 @@ const HomePage = () => {
                   pizzaIngredients.includes(loveIngredient)
                 );
               })
+              .filter((pizza: any) => {
+                //if meat is true, then filter out pizza with less than 2 ingredients where vegetarian is false
+                if (meat) {
+                  return (
+                    pizza.ingredients.filter(
+                      (ingredient: any) => !ingredient.vegetarian
+                    ).length >= 3
+                  );
+                } else {
+                  return true;
+                }
+              })
 
               .map((pizza: any, index: number) => (
-                <Box key={index}>
-                  <b>{pizza.name}</b>:{" "}
-                  {pizza.ingredients
-                    .map((ingredient: any) => ingredient.name)
-                    .join(", ")}
+                <Box
+                  key={index}
+                  sx={{ display: "flex", justifyContent: "space-between" }}
+                >
+                  <Box>
+                    <b>{pizza.name}</b>:{" "}
+                    {pizza.ingredients
+                      .map((ingredient: any) => ingredient.name)
+                      .join(", ")}
+                  </Box>
+                  <Chip
+                    label={pizza.Pizzeria.name}
+                    onClick={() => {
+                      //open new tab
+                      const win = window.open(
+                        `https://www.google.com/maps/place/?q=place_id:${pizza.Pizzeria.googleId}`,
+                        "_blank"
+                      );
+                      win?.focus();
+                    }}
+                  />
                 </Box>
               ))}
           </Paper>

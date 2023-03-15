@@ -23,6 +23,7 @@ model Pizza {
 model Ingredient {
   id         String  @id @unique @default(cuid())
   name       String  @unique
+  alternativeNames String[]
   vegetarian Boolean
   pizzas     Pizza[]
   createdAt  DateTime @default(now())
@@ -35,7 +36,8 @@ model Pizzeria {
   googleId String?  @unique
   pizzas   Pizza[]
   lat      Decimal?
-  lon      Decimal?
+  lng      Decimal?
+  address  String?
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 }

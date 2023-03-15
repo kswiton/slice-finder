@@ -14,6 +14,7 @@ import Login from "./Pages/Login";
 import App from "./App";
 import SignUp from "./Pages/SignUp";
 import HomePage from "./Layout/HomePage";
+import AddPizzas from "./Layout/AddPizzas";
 
 const queryClient = new QueryClient();
 const container = document.getElementById("root")!;
@@ -42,6 +43,10 @@ const router = createBrowserRouter([
   {
     path: "/home",
     element: <HomePage />,
+  },
+  {
+    path: "/addpizza",
+    element: <AddPizzas />,
   },
 ]);
 

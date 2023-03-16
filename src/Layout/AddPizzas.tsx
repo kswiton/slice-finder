@@ -39,7 +39,6 @@ const AddPizzas = () => {
     getPizzerias();
   }, []);
 
-  console.log("checkedIngredients", checkedIngredients);
   const handleChangePizzeria = (event: SelectChangeEvent) => {
     setChosenPizzeria(event.target.value);
   };
@@ -88,7 +87,8 @@ const AddPizzas = () => {
   const addPizza = async () => {
     const response = await axios.post("/api/addpizza", {
       pizzeriaId: chosenPizzeria,
-      name: pizzaName,
+      name:
+        pizzaName.charAt(0).toUpperCase() + pizzaName.toLowerCase().slice(1),
       ingredients: checkedIngredients.map((ingredient) => ingredient.id),
     });
     console.log(response);

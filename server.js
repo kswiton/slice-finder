@@ -50,7 +50,6 @@ app.get("/api/findIngredient", async (req, res) => {
 
 app.get("/api/checkIngredients", async (req, res) => {
   const ingredients = req.query.ingredients;
-  console.log("1", ingredients);
   const response = ingredients.map(async (ingredient) => {
     try {
       const foundIngredient = await prisma.ingredient.findFirst({
@@ -60,19 +59,81 @@ app.get("/api/checkIngredients", async (req, res) => {
           },
         },
       });
-      console.log("2", foundIngredient);
       return foundIngredient;
     } catch (error) {
       return null;
     }
   });
   const result = await Promise.all(response);
+  const hasCheese = result.find(
+    (ingredient) => ingredient.id === "clf2la9kc0000vums6k5lk6u3"
+  );
+  const hasSauce = result.find(
+    (ingredient) => ingredient.id === "clf2la9kc000avumsy9non86m"
+  );
+  !hasCheese &&
+    result.push(
+      await prisma.ingredient.findFirst({
+        where: { id: "clf2la9kc0000vums6k5lk6u3" },
+      })
+    );
+  !hasSauce &&
+    result.push(
+      await prisma.ingredient.findFirst({
+        where: { id: "clf2la9kc000avumsy9non86m" },
+      })
+    );
+
   res.send(result);
+});
+
+app.get("/api/addCheeseAndSauce", async (req, res) => {
+  const pizzasWithoutSauce = await prisma.pizza.findMany({
+    where: {
+      ingredients: {
+        none: {
+          id: "clf2la9kc000avumsy9non86m",
+        },
+      },
+    },
+  });
+  pizzasWithoutSauce.forEach(async (pizza) => {
+    await prisma.pizza.update({
+      where: { id: pizza.id },
+      data: {
+        ingredients: {
+          connect: {
+            id: "clf2la9kc000avumsy9non86m",
+          },
+        },
+      },
+    });
+  });
+  const pizzasWithoutCheese = await prisma.pizza.findMany({
+    where: {
+      ingredients: {
+        none: {
+          id: "clf2la9kc0000vums6k5lk6u3",
+        },
+      },
+    },
+  });
+  pizzasWithoutCheese.forEach(async (pizza) => {
+    await prisma.pizza.update({
+      where: { id: pizza.id },
+      data: {
+        ingredients: {
+          connect: {
+            id: "clf2la9kc0000vums6k5lk6u3",
+          },
+        },
+      },
+    });
+  });
 });
 
 app.post("/api/addIngredient", async (req, res) => {
   const ingredient = req.body;
-  // console.log("1", ingredient);
   const newIngredient = await prisma.ingredient.create({
     data: {
       ...ingredient,
@@ -86,7 +147,7 @@ app.post("/api/addpizza", async (req, res) => {
   console.log(pizza);
   const newPizza = await prisma.pizza.create({
     data: {
-      name: pizza.name,
+      name: pizza.name.trim(),
       ingredients: {
         connect: pizza.ingredients.map((ingredientId) => ({
           id: ingredientId,

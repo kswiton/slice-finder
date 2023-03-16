@@ -12,15 +12,44 @@ import Switch from "@mui/material/Switch";
 import Tooltip from "@mui/material/Tooltip";
 import MoreHorizIcon from "@mui/icons-material/MoreHoriz";
 import Chip from "@mui/material/Chip";
+import VisibilityOffIcon from "@mui/icons-material/VisibilityOff";
+import VisibilityIcon from "@mui/icons-material/Visibility";
+
+interface Pizzeria {
+  id: string;
+  name: string;
+  address: string;
+  pizzas: Pizza[];
+  googleId: string;
+  lat: number;
+  lng: number;
+}
+
+interface Ingredient {
+  id: string;
+  name: string;
+  alternativeNames: string[];
+  vegetarian: boolean;
+  pizzas: Pizza[];
+}
+
+interface Pizza {
+  id: string;
+  name: string;
+  ingredients: Ingredient[];
+  pizzeriaId: string;
+  Pizzeria: Pizzeria;
+}
 
 const HomePage = () => {
   const [pizzaList, setPizzaList] = useState<any[]>([]);
-  const [ingredients, setIngredients] = useState<any[]>([]);
-  const [hateList, setHateList] = useState<any[]>([]);
-  const [loveList, setLoveList] = useState<any[]>([]);
+  const [ingredients, setIngredients] = useState<Ingredient[]>([]);
+  const [hateList, setHateList] = useState<Ingredient[]>([]);
+  const [loveList, setLoveList] = useState<Ingredient[]>([]);
   const [vege, setVege] = useState<boolean>(false);
   const [meat, setMeat] = useState<boolean>(false);
   const [showAllIngredients, setShowAllIngredients] = useState<boolean>(false);
+  const [hideCheeseAndSauce, setHideCheeseAndSauce] = useState<boolean>(true);
 
   console.log(pizzaList);
   const handleAlignment = (
@@ -69,7 +98,7 @@ const HomePage = () => {
     navigator.geolocation.getCurrentPosition(successCallback, errorCallback);
   };
 
-  const handleLoveHate = (ingredient: any) => {
+  const handleLoveHate = (ingredient: Ingredient) => {
     if (hateList.includes(ingredient)) {
       setHateList(
         hateList.filter((hateIngredient) => hateIngredient !== ingredient)
@@ -98,7 +127,15 @@ const HomePage = () => {
         minHeight: "100vh",
       }}
     >
-      <Box sx={{ display: "flex", flexDirection: "column", gap: 3, m: 3 }}>
+      <Box
+        sx={{
+          display: "flex",
+          flexDirection: "column",
+          gap: 3,
+          m: 3,
+          minWidth: "80%",
+        }}
+      >
         {/* <Button
           onClick={search}
           variant="contained"
@@ -150,21 +187,25 @@ const HomePage = () => {
                 }}
                 size="small"
               >
-                <Tooltip title="Bleh!" placement="top">
-                  <ToggleButton value="hate" aria-label="hate">
-                    🤢
-                  </ToggleButton>
-                </Tooltip>
-                <Tooltip title="Whatever" placement="top">
-                  <ToggleButton value="ok" aria-label="ok">
-                    🙂
-                  </ToggleButton>
-                </Tooltip>
-                <Tooltip title="Must have!" placement="top">
-                  <ToggleButton value="love" aria-label="love">
-                    😍
-                  </ToggleButton>
-                </Tooltip>
+                <ToggleButton
+                  value="hate"
+                  aria-label="hate"
+                  // sx={{ padding: 0 }}
+                >
+                  <Tooltip title="Bleh!" placement="top">
+                    <span style={{ fontSize: "1rem" }}>🤢</span>
+                  </Tooltip>
+                </ToggleButton>
+                <ToggleButton value="ok" aria-label="ok">
+                  <Tooltip title="Whatever" placement="top">
+                    <span style={{ fontSize: "1rem" }}>🙂</span>
+                  </Tooltip>
+                </ToggleButton>
+                <ToggleButton value="love" aria-label="love">
+                  <Tooltip title="Must have!" placement="top">
+                    <span style={{ fontSize: "1rem" }}>😍</span>
+                  </Tooltip>
+                </ToggleButton>
               </ToggleButtonGroup>
 
               {ingredient.name}
@@ -184,35 +225,55 @@ const HomePage = () => {
           <Paper
             sx={{ p: 3, display: "flex", flexDirection: "column", gap: 3 }}
           >
+            <Box sx={{ borderBottom: "1px solid #000", paddingBottom: 1 }}>
+              <Tooltip
+                title={
+                  hideCheeseAndSauce
+                    ? "Pokaż ser mozzarella i sos pomidorowy"
+                    : "Schowaj ser mozzarella i sos pomidorowy"
+                }
+                placement="top"
+              >
+                <IconButton
+                  onClick={() => setHideCheeseAndSauce(!hideCheeseAndSauce)}
+                >
+                  {hideCheeseAndSauce ? (
+                    <VisibilityIcon />
+                  ) : (
+                    <VisibilityOffIcon />
+                  )}
+                </IconButton>
+              </Tooltip>
+            </Box>
             {pizzaList
-              .filter((pizza: any) => {
+              .filter((pizza: Pizza) => {
                 const pizzaIngredients = pizza.ingredients.map(
-                  (ingredient: any) => ingredient.name
+                  (ingredient: Ingredient) => ingredient.name
                 );
                 const hateIngredients = hateList.map(
-                  (ingredient: any) => ingredient.name
+                  (ingredient: Ingredient) => ingredient.name
                 );
                 return !hateIngredients.some((hateIngredient) =>
                   pizzaIngredients.includes(hateIngredient)
                 );
               })
-              .filter((pizza: any) => {
+              .filter((pizza: Pizza) => {
                 const pizzaIngredients = pizza.ingredients.map(
-                  (ingredient: any) => ingredient.name
+                  (ingredient: Ingredient) => ingredient.name
                 );
                 const loveIngredients = loveList.map(
-                  (ingredient: any) => ingredient.name
+                  (ingredient: Ingredient) => ingredient.name
                 );
                 return loveIngredients.every((loveIngredient) =>
                   pizzaIngredients.includes(loveIngredient)
                 );
               })
-              .filter((pizza: any) => {
-                //if meat is true, then filter out pizza with less than 2 ingredients where vegetarian is false
+              .filter((pizza: Pizza) => {
+                //if meat is true, then filter out pizza with less than 3 ingredients where vegetarian is false
                 if (meat) {
                   return (
                     pizza.ingredients.filter(
-                      (ingredient: any) => !ingredient.vegetarian
+                      (ingredient: Ingredient) => !ingredient.vegetarian
                     ).length >= 3
                   );
                 } else {
@@ -220,7 +281,7 @@ const HomePage = () => {
                 }
               })
 
-              .map((pizza: any, index: number) => (
+              .map((pizza: Pizza, index: number) => (
                 <Box
                   key={index}
                   sx={{ display: "flex", justifyContent: "space-between" }}
@@ -228,8 +289,27 @@ const HomePage = () => {
                   <Box>
                     <b>{pizza.name}</b>:{" "}
                     {pizza.ingredients
-                      .map((ingredient: any) => ingredient.name)
-                      .join(", ")}
+                      .map((ingredient: Ingredient) => ingredient.name)
+                      .sort(
+                        //"ser" and "sos" should be first then the rest should be sorted alphabetically
+                        (a: string, b: string) =>
+                          a === "Ser" || a.startsWith("Sos")
+                            ? -1
+                            : b === "Ser" || b.startsWith("Sos")
+                            ? 1
+                            : a.localeCompare(b)
+                      )
+                      .filter((ingredientName: string) => {
+                        if (hideCheeseAndSauce) {
+                          return (
+                            !(ingredientName === "Ser") &&
+                            !(ingredientName === "Sos")
+                          );
+                        } else {
+                          return true;
+                        }
+                      })
+                      .join(", ") || "..."}
                   </Box>
                   <Chip
                     label={pizza.Pizzeria.name}

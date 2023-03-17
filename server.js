@@ -16,23 +16,10 @@ app.get("/api/url", (req, res) => {
 app.get("/api/place", async (req, res) => {
   const lat = req.query.latitude;
   const lng = req.query.longitude;
-  const response = await prisma.pizzeria.findMany();
-  // console.log(req.query);
-  // console.log(lat, lng);
-  // const response = await axios(
-  //   `https://maps.googleapis.com/maps/api/place/nearbysearch/json?location=${lat}%2C${lng}&radius=2500&type=restaurant&keyword=pizza&language=pl&key=${process.env.REACT_APP_GOOGLE_API_KEY}`
-  // );
-  // await prisma.pizzeria.createMany({
-  //   data: response.data.results.map((result) => ({
-  //     name: result.name,
-  //     address: result.vicinity,
-  //     lat: result.geometry.location.lat,
-  //     lng: result.geometry.location.lng,
-  //     googleId: result.place_id,
-  //   })),
-  // });
-  console.log(response);
-  res.send(response);
+  const response = await axios.get(
+    `https://maps.googleapis.com/maps/api/geocode/json?latlng=${lat},${lng}&language=pl&key=${process.env.REACT_APP_GOOGLE_API_KEY}`
+  );
+  res.send(response.data.results);
 });
 
 app.get("/api/findIngredient", async (req, res) => {

@@ -3,7 +3,7 @@ import TextField from "@mui/material/TextField";
 import Box from "@mui/material/Box";
 import axios from "axios";
 import { useQuery, useMutation } from "react-query";
-import { Button, IconButton, Paper } from "@mui/material";
+import { Button, IconButton, Paper, Typography } from "@mui/material";
 import LocationOnIcon from "@mui/icons-material/LocationOn";
 import ToggleButton from "@mui/material/ToggleButton";
 import ToggleButtonGroup from "@mui/material/ToggleButtonGroup";
@@ -14,6 +14,8 @@ import MoreHorizIcon from "@mui/icons-material/MoreHoriz";
 import Chip from "@mui/material/Chip";
 import VisibilityOffIcon from "@mui/icons-material/VisibilityOff";
 import VisibilityIcon from "@mui/icons-material/Visibility";
+import Slider from "@mui/material/Slider";
+import distance from "@turf/distance";
 
 interface Pizzeria {
   id: string;
@@ -50,12 +52,40 @@ const HomePage = () => {
   const [meat, setMeat] = useState<boolean>(false);
   const [showAllIngredients, setShowAllIngredients] = useState<boolean>(false);
   const [hideCheeseAndSauce, setHideCheeseAndSauce] = useState<boolean>(true);
+  const [userCoordinates, setUserCoordinates] = useState<number[] | null>(null);
+  const [range, setRange] = useState<number>(10);
+  const [userAddress, setUserAddress] = useState<string>("");
+  const [pizzasInRange, setPizzasInRange] = useState<any[]>([]);
+  const [pizzeriasInRange, setPizzeriasInRange] = useState<number>(0);
 
-  console.log(pizzaList);
-  const handleAlignment = (
-    event: React.MouseEvent<HTMLElement>,
-    newAlignment: string | null
-  ) => {};
+  useEffect(() => {
+    if (userCoordinates) {
+      pizzaList.forEach((pizza) => {
+        const distanceFromUser = distance(
+          [userCoordinates[1], userCoordinates[0]],
+          [pizza.Pizzeria.lng, pizza.Pizzeria.lat],
+          { units: "kilometers" }
+        );
+        pizza.distanceFromUser = distanceFromUser;
+      });
+      setPizzaList(pizzaList);
+    }
+  }, [userCoordinates, pizzaList]);
+
+  useEffect(() => {
+    setPizzasInRange(pizzaList);
+    if (userCoordinates) {
+      const pizzasInRange = pizzaList.filter(
+        (pizza) => pizza.distanceFromUser < range
+      );
+      const pizzeriasInRange = pizzasInRange.filter(
+        (v, i, a) => a.findIndex((t) => t.Pizzeria.id === v.Pizzeria.id) === i
+      );
+      setPizzasInRange(pizzasInRange);
+      setPizzeriasInRange(pizzeriasInRange.length);
+    }
+  }, [userCoordinates, pizzaList, range]);
+
   useEffect(() => {
     axios.get("/api/ingredients").then((response) => {
       setIngredients(response.data);
@@ -75,6 +105,10 @@ const HomePage = () => {
     setMeat(!meat);
   };
 
+  const handleChangeRange = (event: Event, newValue: number | number[]) => {
+    setRange(newValue as number);
+  };
+
   useEffect(() => {
     vege
       ? setHateList(ingredients.filter((ingredient) => !ingredient.vegetarian))
@@ -82,12 +116,14 @@ const HomePage = () => {
   }, [vege, ingredients]);
 
   const successCallback = async (position: any) => {
+    setUserCoordinates([position.coords.latitude, position.coords.longitude]);
     const response = await axios.get("/api/place", {
       params: {
         latitude: position.coords.latitude,
         longitude: position.coords.longitude,
       },
     });
+    setUserAddress(response.data[0].formatted_address);
   };
 
   const errorCallback = (error: any) => {
@@ -132,18 +168,82 @@ const HomePage = () => {
           display: "flex",
           flexDirection: "column",
           gap: 3,
-          m: 3,
+          m: 6,
           minWidth: "80%",
         }}
       >
-        {/* <Button
-          onClick={search}
-          variant="contained"
-          color="warning"
-          startIcon={<LocationOnIcon />}
+        <Box
+          sx={{
+            display: "grid",
+            gridTemplateColumns: "repeat(4, 1fr)",
+            gap: 6,
+          }}
         >
-          Search
-        </Button> */}
+          <Button
+            onClick={search}
+            variant="contained"
+            color="warning"
+            startIcon={<LocationOnIcon />}
+            sx={{
+              gridColumn: "1/1",
+              maxHeight: "50px",
+            }}
+          >
+            Szukaj
+          </Button>
+          <Slider
+            aria-label="Volume"
+            value={range}
+            onChange={handleChangeRange}
+            min={1}
+            max={25}
+            valueLabelDisplay="auto"
+            marks={[
+              { value: 1, label: "1km" },
+              { value: 25, label: "25km" },
+            ]}
+            sx={{
+              gridColumn: "2/2",
+            }}
+          />
+          <Box
+            sx={{
+              gridColumn: "3/3",
+            }}
+          >
+            <Typography
+              sx={{
+                color: "white",
+                fontSize: "1rem",
+                textAlign: "center",
+              }}
+            >
+              {userAddress}
+            </Typography>
+          </Box>
+          {userCoordinates && (
+            <Box sx={{ gridColumn: "4/4" }}>
+              <Typography
+                sx={{
+                  color: "white",
+                  fontSize: "1rem",
+                  textAlign: "center",
+                }}
+              >
+                Pizzerii: {pizzeriasInRange}
+              </Typography>
+              <Typography
+                sx={{
+                  color: "white",
+                  fontSize: "1rem",
+                  textAlign: "center",
+                }}
+              >
+                Pizzy: {pizzasInRange.length}
+              </Typography>
+            </Box>
+          )}
+        </Box>
         <Paper
           sx={{
             p: 3,
@@ -172,7 +272,10 @@ const HomePage = () => {
             {showAllIngredients ? "Pokaż mniej" : "Pokaż wszystkie"}
           </Button>
           {ingredientsToShow.map((ingredient, index) => (
-            <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
+            <Box
+              key={index}
+              sx={{ display: "flex", alignItems: "center", gap: 1 }}
+            >
               <ToggleButtonGroup
                 value={
                   hateList.includes(ingredient)
@@ -245,7 +348,7 @@ const HomePage = () => {
                 </IconButton>
               </Tooltip>
             </Box>
-            {pizzaList
+            {pizzasInRange
               .filter((pizza: Pizza) => {
                 const pizzaIngredients = pizza.ingredients.map(
                   (ingredient: Ingredient) => ingredient.name
